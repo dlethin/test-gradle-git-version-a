@@ -1,3 +1,13 @@
+buildscript {
+    repositories {
+    	jcenter()
+    }
+    dependencies {
+    	// If we role our own strategy for nextTag Version
+		//classpath 'com.github.zafarkhaja:java-semver:0.9.0'
+    }
+}
+
 plugins {
   id 'org.ajoberstar.grgit' version '1.6.0'
 
@@ -6,6 +16,29 @@ plugins {
   //id 'org.ajoberstar.release-base' version '<version>'
 }
 
+import com.github.zafarkhaja.semver.Version
+
+def getVersionCode(version) {
+
+	int baseCode = 0
+	int multiplier = 100
+
+    List<String> empties = (1..3).collect { "0" }
+
+    def versionParts = (version.split(/[^0-9]+/) + empties).
+            collect{ it as int }[0..< 3]
+
+    int code = baseCode + versionParts.inject(0) { result, i -> result * multiplier + i.toInteger() };
+
+	return code
+}
+
 task(version) << {
-	println "version: ${version}"
+	println "versionName: ${version.toString()}"
+
+	Version v = Version.valueOf(version.toString())
+
+	println "versionNormal: ${v.getNormalVersion()}"
+	println "versionCode: ${getVersionCode(v.getNormalVersion())}"
+
 }
