@@ -76,7 +76,20 @@ release {
 
         			// TODO -- still not getting the behavior on want
         			// on the non dev branch -- deep dive
-		        	nextState = Strategies.Normal.USE_NEAREST_ANY.infer(state)
+		        	// nextState = Strategies.Normal.USE_NEAREST_ANY.infer(state)
+
+
+		            def nearest = state.nearestVersion
+		            println "nearestVersion: ${nearest}"
+		            println "nearestVersion: ${nearest.any.normalVersion}"
+
+		            if (nearest.any == nearest.normal) {
+		                nextState = state
+		            } else {
+		                nextState = state.copyWith(inferredNormal: nearest.any.normalVersion)
+		            }
+
+
         		} else {
         			println "skipping using nearest normal"
         		}
@@ -84,8 +97,24 @@ release {
         		return nextState
         	},
 
+        	// Instead of running this, we are going to conditionally run it 
+        	// based on branch name.
+        	// Since this is the last closure that will set the version, we
+        	// need to make sure it's set to something, otherwise, an exception will be thrown
+
         	//Strategies.Normal.useScope(ChangeScope.PATCH)
-        	closure { state -> incrementAnyFromScope(state, ChangeScope.PATCH) }
+
+        	closure { state -> 
+        		def nextState = state
+				if (!state.currentBranch.name.equals("master")) {
+	        		nextState = incrementAnyFromScope(state, ChangeScope.PATCH)
+	        	} else {
+	        		// we need to do something
+	                nextState = state.copyWith(inferredNormal: state.nearestVersion.any.normalVersion)
+	        	}
+
+	        	return nextState
+	        }
         ),
 
         enforcePrecedence: false,
