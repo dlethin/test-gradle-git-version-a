@@ -72,10 +72,10 @@ release {
 				// on when to run this.        		
         		if (!state.currentBranch.name.equals("develop")) {
         			println "using nearest normal"
-		        	Strategies.Normal.USE_NEAREST_ANY.infer(state)
+		        	return Strategies.Normal.USE_NEAREST_ANY.infer(state)
         		} else {
         			println "skipping using nearest normal"
-        			state
+        			return state
         		}
         	},
 
