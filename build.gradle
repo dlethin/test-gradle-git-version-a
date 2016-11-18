@@ -20,15 +20,92 @@ import com.github.zafarkhaja.semver.Version
 import org.ajoberstar.gradle.git.release.semver.RebuildVersionStrategy
 import org.ajoberstar.gradle.git.release.opinion.Strategies
 
+// for the "all" command
+import static org.ajoberstar.gradle.git.release.semver.StrategyUtil.*
+import org.ajoberstar.gradle.git.release.semver.ChangeScope
+import org.ajoberstar.gradle.git.release.semver.SemVerStrategyState
+
+
+/**
+ * Increments the nearest any version using the specified scope.
+ * 
+ * Jumped through a lot of hoops to reverse engineer howthis works.
+ * I wanted to increment off of *any* tag, not just from a "normal" tag
+ */
+def incrementAnyFromScope(SemVerStrategyState state, ChangeScope scope) {
+
+    //def oldNormal = state.nearestVersion.normal
+    def oldAny = state.nearestVersion.any
+
+    switch (scope) {
+        case ChangeScope.MAJOR:
+            return state.copyWith(inferredNormal: oldAny.incrementMajorVersion())
+        case ChangeScope.MINOR:
+            return state.copyWith(inferredNormal: oldAny.incrementMinorVersion())
+        case ChangeScope.PATCH:
+            return state.copyWith(inferredNormal: oldAny.incrementPatchVersion())
+        default:
+            return state
+    }
+}
+
 release {
 
 	// these are all added by default to the opinionated plugin
 	versionStrategy RebuildVersionStrategy.INSTANCE
- 	versionStrategy Strategies.DEVELOPMENT
+
+	def myDevStrategy = Strategies.DEVELOPMENT.copyWith(
+
+        normalStrategy: one(
+
+        	//Strategies.Normal.USE_SCOPE_PROP,
+        	closure { state -> incrementAnyFromScope(state, state.scopeFromProp) },
+        	Strategies.Normal.USE_NEAREST_ANY,
+        	//Strategies.Normal.useScope(ChangeScope.PATCH)
+        	closure { state -> incrementNormalFromScope(state, ChangeScope.PATCH) }
+        ),
+
+        //enforcePrecedence: false,
+/*
+        preReleaseStrategy: all(
+
+        	//Strategies.PreRelease.STAGE_FLOAT,
+        	closure { state ->
+
+        		println "state: ${state}"
+	            def sameNormal = state.inferredNormal == state.nearestVersion.any.normalVersion
+	            def nearestAnyPreRelease = state.nearestVersion.any.preReleaseVersion
+
+	            println "sameNormal: ${sameNormal}"
+	            println "nearestAnyPreRelease: ${nearestAnyPreRelease}"
+	            println "nearestVersion: ${state.nearestVersion}"
+
+	            println "heh: ${nearestAnyPreRelease}.${state.stageFromProp}"
+
+	            if (sameNormal && nearestAnyPreRelease != null && nearestAnyPreRelease > state.stageFromProp) {
+	            	println("yo1")
+	                state.copyWith(inferredPreRelease: "${nearestAnyPreRelease}.${state.stageFromProp}")
+	            } else {
+	            	println("yo2")
+	                state.copyWith(inferredPreRelease: state.stageFromProp)
+	            }
+
+	            state
+	        },
+
+        	Strategies.PreRelease.COUNT_COMMITS_SINCE_ANY,
+        	Strategies.PreRelease.SHOW_UNCOMMITTED),
+*/
+        // NOTE -- here's how we can override this to inject buildMetadata (counter) coming from GoCD
+        //buildMetadataStrategy: BuildMetadata.COMMIT_ABBREVIATED_ID,
+        createTag: false
+    )
+
+	versionStrategy myDevStrategy
  	versionStrategy Strategies.PRE_RELEASE
  	versionStrategy Strategies.FINAL
 
-    defaultVersionStrategy = Strategies.DEVELOPMENT
+	defaultVersionStrategy = myDevStrategy
 }
 
 def getVersionCode(version) {
