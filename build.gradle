@@ -12,11 +12,48 @@ plugins {
   id 'org.ajoberstar.grgit' version '1.6.0'
 
   // only one of the following
-  id 'org.ajoberstar.release-opinion' version '1.6.0'
-  //id 'org.ajoberstar.release-base' version '<version>'
+  //id 'org.ajoberstar.release-opinion' version '1.6.0'
+  id 'org.ajoberstar.release-base' version '1.6.0'
 }
 
 import com.github.zafarkhaja.semver.Version
+import org.ajoberstar.gradle.git.release.semver.RebuildVersionStrategy
+import org.ajoberstar.gradle.git.release.opinion.Strategies
+
+release {
+
+	// these are all added by default to the opinionated plugin
+	versionStrategy RebuildVersionStrategy.INSTANCE
+ 	versionStrategy Strategies.DEVELOPMENT
+ 	versionStrategy Strategies.PRE_RELEASE
+ 	versionStrategy Strategies.FINAL
+
+    defaultVersionStrategy = Strategies.DEVELOPMENT
+
+        tagStrategy {
+        generateMessage = { version ->
+            StringBuilder builder = new StringBuilder()
+            builder << 'Release of '
+            builder << version.version
+            builder << '\n\n'
+
+            String previousVersion = "${project.release.tagStrategy.toTagString(version.previousVersion)}^{commit}"
+            List excludes = []
+            if (tagExists(grgit, previousVersion)) {
+                excludes << previousVersion
+            }
+            grgit.log(
+                includes: ['HEAD'],
+                excludes: excludes
+            ).inject(builder) { bldr, commit ->
+                bldr << '- '
+                bldr << commit.shortMessage
+                bldr << '\n'
+            }
+            builder.toString()
+        }
+    }
+}
 
 def getVersionCode(version) {
 
