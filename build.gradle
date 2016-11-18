@@ -68,15 +68,20 @@ release {
 
         		println "currentBranch: ${state.currentBranch.name}"
 
+        		def nextState = state
 				// Here is where we have to beef up the logic on
 				// on when to run this.        		
         		if (!state.currentBranch.name.equals("develop")) {
         			println "using nearest normal"
-		        	return Strategies.Normal.USE_NEAREST_ANY.infer(state)
+
+        			// TODO -- still not getting the behavior on want
+        			// on the non dev branch -- deep dive
+		        	nextState = Strategies.Normal.USE_NEAREST_ANY.infer(state)
         		} else {
         			println "skipping using nearest normal"
-        			return state
         		}
+
+        		return nextState
         	},
 
         	//Strategies.Normal.useScope(ChangeScope.PATCH)
