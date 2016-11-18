@@ -28,7 +28,7 @@ import org.ajoberstar.gradle.git.release.semver.SemVerStrategyState
 
 /**
  * Increments the nearest any version using the specified scope.
- * 
+ *
  * Jumped through a lot of hoops to reverse engineer howthis works.
  * I wanted to increment off of *any* tag, not just from a "normal" tag
  */
@@ -36,6 +36,9 @@ def incrementAnyFromScope(SemVerStrategyState state, ChangeScope scope) {
 
     //def oldNormal = state.nearestVersion.normal
     def oldAny = state.nearestVersion.any
+
+    println "yo: ${oldAny}"
+    //oldAny = Version.forIntegers(1,0,2)
 
     switch (scope) {
         case ChangeScope.MAJOR:
@@ -45,6 +48,7 @@ def incrementAnyFromScope(SemVerStrategyState state, ChangeScope scope) {
         case ChangeScope.PATCH:
             return state.copyWith(inferredNormal: oldAny.incrementPatchVersion())
         default:
+        	println("yikes")
             return state
     }
 }
@@ -58,15 +62,25 @@ release {
 
         normalStrategy: one(
 
+        	// TODO: Normal strategy is where we really need to mess around
+        	// and see if we can figure out the correct sequence of events to
+        	// string this all together.  The good news is that so far I haven't had
+        	// to patch any code.
+
         	//Strategies.Normal.USE_SCOPE_PROP,
         	closure { state -> incrementAnyFromScope(state, state.scopeFromProp) },
-        	Strategies.Normal.USE_NEAREST_ANY,
+        	closure { state ->
+        		println "are we getting here?"
+        		state
+        	},
+
+        	//Strategies.Normal.USE_NEAREST_ANY,
         	//Strategies.Normal.useScope(ChangeScope.PATCH)
-        	closure { state -> incrementNormalFromScope(state, ChangeScope.PATCH) }
+        	closure { state -> incrementAnyFromScope(state, ChangeScope.PATCH) }
         ),
 
-        //enforcePrecedence: false,
-/*
+        enforcePrecedence: false,
+
         preReleaseStrategy: all(
 
         	//Strategies.PreRelease.STAGE_FLOAT,
@@ -95,7 +109,7 @@ release {
 
         	Strategies.PreRelease.COUNT_COMMITS_SINCE_ANY,
         	Strategies.PreRelease.SHOW_UNCOMMITTED),
-*/
+
         // NOTE -- here's how we can override this to inject buildMetadata (counter) coming from GoCD
         //buildMetadataStrategy: BuildMetadata.COMMIT_ABBREVIATED_ID,
         createTag: false
