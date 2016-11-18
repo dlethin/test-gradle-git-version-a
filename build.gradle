@@ -29,30 +29,6 @@ release {
  	versionStrategy Strategies.FINAL
 
     defaultVersionStrategy = Strategies.DEVELOPMENT
-
-        tagStrategy {
-        generateMessage = { version ->
-            StringBuilder builder = new StringBuilder()
-            builder << 'Release of '
-            builder << version.version
-            builder << '\n\n'
-
-            String previousVersion = "${project.release.tagStrategy.toTagString(version.previousVersion)}^{commit}"
-            List excludes = []
-            if (tagExists(grgit, previousVersion)) {
-                excludes << previousVersion
-            }
-            grgit.log(
-                includes: ['HEAD'],
-                excludes: excludes
-            ).inject(builder) { bldr, commit ->
-                bldr << '- '
-                bldr << commit.shortMessage
-                bldr << '\n'
-            }
-            builder.toString()
-        }
-    }
 }
 
 def getVersionCode(version) {
